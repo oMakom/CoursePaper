@@ -64,3 +64,24 @@ def greeting_by_time() -> str:
                 break
     logger.info(f"greeting_by_time завершение работы функции с параметром: {result_greeting}")
     return result_greeting
+
+
+def cards_filtered(num_card: str) -> str:
+    """
+    Принимает на вход строку с номером карты, возваращает 4 последние цифры, либо пустую строку при ошибке
+    """
+    logger.info(f"вызов cards_filtered с параметром: {num_card}")
+    if not isinstance(num_card, str):
+        logger.error("cards_filtered Ошибка TypeError: 'Номер карты должен быть строкой'")
+        raise TypeError("Номер карты должен быть строкой")
+    if len(num_card) > 4:
+        logger.info("cards_filtered обработка номера карты длинной больше 4х символов и завершение работы функции")
+        return num_card[-4:]
+    if len(num_card) == 4:
+        logger.info("cards_filtered обработка номера карты длинной райной 4м символам и завершение работы функции")
+        return num_card
+    logger.info(
+        "cards_filtered обработка номера карты длинной меньше 4х символов( на выводе пустая строка) "
+        "и завершение работы функции"
+    )
+    return ""
