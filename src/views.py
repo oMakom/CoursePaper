@@ -35,3 +35,29 @@ def read_datafile(filename: str = "operations.xlsx") -> List[Dict[Hashable, Any]
         transactions = []
         logger.error(f"read_excel_file завершение функции с ошибкой({e}). На выходе пустой список")
         return transactions
+
+
+def greeting_by_time() -> str:
+    """
+    Фунция выводит приветствие в зависимости от текущего времени системы в формате строки
+    Например: "Доброе утро" с 06:00 по 11:59
+    """
+    greetings_time = [
+        {"Доброе утро": ["06:00", "11:59"]},
+        {"Добрый день": ["12:00", "17:59"]},
+        {"Добрый вечер": ["18:00", "22:59"]},
+        {"Доброй ночи": ["23:00", "05:59"]},
+    ]
+    result_greeting = ""
+    current_time = datetime.datetime.now().time()
+    for greeting in greetings_time:
+        for key, value in greeting.items():
+            # по каждому диапазону сравниваем текущее время
+            after_time = datetime.datetime.strptime(value[0], "%H:%M").time()
+            before_time = datetime.datetime.strptime(value[1], "%H:%M").time()
+            if (after_time <= current_time >= before_time) or (
+                (current_time >= after_time) or (current_time <= before_time) and key == "Доброй ночи"
+            ):
+                result_greeting = key
+                break
+    return result_greeting
