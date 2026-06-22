@@ -143,16 +143,20 @@ def cards_total_spent(transactions: List[Dict]) -> List[Dict]:
                             кешбэк (1 рубль на каждые 100 рублей) ("cashback").
     списком словарей на выходе
     """
+    logger.info("вызов cards_total_spent")
     df = pd.DataFrame(transactions)
+    logger.info("cards_total_spent групировка данных")
     grouped = df.groupby("Номер карты")["Сумма операции с округлением"].sum().reset_index()
+    logger.info("cards_total_spent переименование колонок под стайт")
     grouped.rename(columns={"Номер карты": "last_digits"}, inplace=True)
     grouped.rename(columns={"Сумма операции с округлением": "total_spent"}, inplace=True)
     df_result = grouped.to_dict("records")
-    # меняем номер карты на 4 цифры
+    logger.info("cards_total_spent оставлеем последние 4 цифры карты, округляем резутьтат тразакций, считаем cashback")
     for item in df_result:
         item["last_digits"] = cards_filtered(item["last_digits"])
         item["total_spent"] = round(item["total_spent"], 2)
         item["cashback"] = round(item["total_spent"] / 100, 2)
+    logger.info("cards_total_spent завершение работы функции")
     return df_result
 
 
