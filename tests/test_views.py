@@ -42,11 +42,11 @@ def test_cards_filtered__wrong_type(num_card: str) -> None:
         cards_filtered(num_card)
 
 
-@pytest.mark.parametrize("start_date, start_range, expected", [
-    ("2026-04-01 00:00:00", "w", datetime.datetime(2026, 3, 30, 0, 0, 0)),
-    ("2026-04-01 00:00:00", "ALL", datetime.datetime(1000, 1, 1, 0, 0, 0)),
-    ("2026-04-20 00:00:00", "M", datetime.datetime(2026, 4, 1, 0, 0, 0)),
-    ("2026-04-01 00:00:00", "y", datetime.datetime(2026, 1, 1, 0, 0, 0)),
+@pytest.mark.parametrize("start_date, start_range,  expected", [
+    ("2026-04-01 00:00:00", "w", (datetime.datetime(2026, 3, 30, 0, 0, 0), datetime.datetime(2026, 4, 1, 0, 0, 0))),
+    ("2026-04-01 00:00:00", "ALL", (datetime.datetime(1000, 1, 1, 0, 0, 0), datetime.datetime(2026, 4, 1, 0, 0, 0))),
+    ("2026-04-20 00:00:00", "M", (datetime.datetime(2026, 4, 1, 0, 0, 0), datetime.datetime(2026, 4, 20, 0, 0, 0))),
+    ("2026-04-01 00:00:00", "y", (datetime.datetime(2026, 1, 1, 0, 0, 0), datetime.datetime(2026, 4, 1, 0, 0, 0))),
 ])
 def test_start_data_filtered(start_date: str, start_range: str, expected: str) -> None:
     """Тест правильности обработка различных номеров"""

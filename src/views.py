@@ -97,7 +97,8 @@ def start_data_filtered(start_date: str, start_range: str = "M") -> datetime.dat
     M — месяц, на который приходится дата;
     Y — год, на который приходится дата;
     ALL — все данные до указанной даты.
-    на выходе дата начала сбора данных, в зависимости от параметров, в формате datetime
+    на выходе дата начала сбора данных, в зависимости от параметров, в формате datetime и конечная дата
+    сбора данных в формате datetime
     """
     logger.info(f"вызов read_datafile с параметрами: start_date: '{start_date}', start_range: '{start_range}'")
     # если некорректный формат даты -> присваиваем сегодняшнюю дату
@@ -129,15 +130,57 @@ def start_data_filtered(start_date: str, start_range: str = "M") -> datetime.dat
         logger.info("read_datafile фильтрация всех данных до указанной даты")
         start_date_final = datetime.datetime.strptime("1000-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
     logger.info("read_datafile завершение работы функции")
-    return start_date_final
+    end_date_final = date_filtered
+    return start_date_final, end_date_final
 
 
-"""
 def cards_total_spent(transactions: List[Dict]) -> List[Dict]:
+    """
+    Принимает список словарей с транзакциями
+    выводит По каждой карте:
+                            последние 4 цифры карты ("last_digits");
+                            общая сумма расходов ("total_spent");
+                            кешбэк (1 рубль на каждые 100 рублей) ("cashback").
+    списком словарей на выходе
+    """
     df = pd.DataFrame(transactions)
-    df['Дата операции'] = pd.to_datetime(df['Дата операции'])
-    grouped = df.groupby(['Номер карты', 'Дата операции', 'Сумма операции'])
-    result = grouped.sum()
-    print(result)
-    pass
-"""
+    # df['Дата операции'] = pd.to_datetime(df['Дата операции'], format='%d.%m.%Y %H:%M:%S')
+    # df['Номер карты'] = pd.to_datetime(df['Номер карты'])
+    # grouped = df.groupby(['Сумма операции с округлением'])
+    grouped = df.groupby("Номер карты")["Сумма операции с округлением"].sum().reset_index()
+    grouped.rename(columns={"Номер карты": "last_digits"}, inplace=True)
+    grouped.rename(columns={"Сумма операции с округлением": "total_spent"}, inplace=True)
+    df_result = grouped.to_dict("records")
+    # меняем номер карты на 4 цифры
+    for item in df_result:
+        item["last_digits"] = cards_filtered(item["last_digits"])
+        item["total_spent"] = round(item["total_spent"], 2)
+        item["cashback"] = round(item["total_spent"] / 100, 2)
+    return df_result
+
+
+def filter_transactions_by_date(transactions: List[Dict], start_date: str, start_range: str = "M") -> List[Dict]:
+    """
+    Фильтрует транзаций по дате и времени с использованием функции start_data_filtered()
+    На входе список словарей, дата в формате YYYY-MM-DD HH:MM:SS, и необязательный параметр
+    Возможные значения второго необязательного параметра:
+    W — неделя, на которую приходится дата;
+    M — месяц, на который приходится дата;
+    Y — год, на который приходится дата;
+    ALL — все данные до указанной даты.
+    на выходе отсортированный список словарей по временному интервалу
+    """
+    start_date_transaction, end_date_transaction = start_data_filtered(start_date, start_range)
+    result_transactions = []
+    for transaction in transactions:
+        if transaction.get("Дата операции"):
+            if (
+                start_date_transaction
+                <= datetime.datetime.strptime(transaction["Дата операции"], "%d.%m.%Y %H:%M:%S")
+                <= end_date_transaction
+            ):
+                result_transactions.append(transaction)
+    return result_transactions
+
+
+#print(cards_total_spent(filter_transactions_by_date(read_datafile(), "2021-12-31 00:00:00", "Y")))
