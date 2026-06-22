@@ -85,3 +85,59 @@ def cards_filtered(num_card: str) -> str:
         "и завершение работы функции"
     )
     return ""
+
+
+def start_data_filtered(start_date: str, start_range: str = "M") -> datetime.datetime:
+    """
+    Принимает на вход строку с датой формата YYYY-MM-DD HH:MM:SS и второй необязательный параметр — диапазон данных.
+    При ошибке принимает текущую дату и время
+    По умолчанию диапазон равен одному месяцу (с начала месяца, на который выпадает дата, по саму дату).
+    Возможные значения второго необязательного параметра:
+    W — неделя, на которую приходится дата;
+    M — месяц, на который приходится дата;
+    Y — год, на который приходится дата;
+    ALL — все данные до указанной даты.
+    на выходе дата начала сбора данных, в зависимости от параметров, в формате datetime
+    """
+    logger.info(f"вызов read_datafile с параметрами: start_date: '{start_date}', start_range: '{start_range}'")
+    # если некорректный формат даты -> присваиваем сегодняшнюю дату
+    try:
+        date_filtered = datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+        logger.info(f"read_datafile преобразование '{start_date}' в datetime по формату YYYY-MM-DD HH:MM:SS")
+    except Exception as e:
+        logger.error(
+            f"read_datafile ошибка преобразования '{start_date}' в datetime по формату YYYY-MM-DD HH:MM:SS. "
+            f"ERROR: {e}.   Сбор данных будет указан относительно текущей даты"
+        )
+        date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date_filtered = datetime.datetime.strptime(date_now, "%Y-%m-%d %H:%M:%S")
+    # если указано будущее -> присваиваем сегодняшнюю дату
+    if date_filtered > datetime.datetime.now():
+        logger.error(f"read_datafile ошибка: Указано будущее({date_filtered}). Присваимваем текущую дату")
+        date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date_filtered = datetime.datetime.strptime(date_now, "%Y-%m-%d %H:%M:%S")
+    if start_range.lower() == "w":
+        start_date_final = date_filtered - datetime.timedelta(days=date_filtered.weekday())
+        logger.info("read_datafile фильтрация даты по текущей неделе")
+    if start_range.lower() == "m":
+        start_date_final = date_filtered.replace(day=1)
+        logger.info("read_datafile фильтрация даты по текущему месяцу")
+    if start_range.lower() == "y":
+        start_date_final = date_filtered.replace(day=1, month=1)
+        logger.info("read_datafile фильтрация даты по текущему году")
+    if start_range.lower() == "all":
+        logger.info("read_datafile фильтрация всех данных до указанной даты")
+        start_date_final = datetime.datetime.strptime("1000-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
+    logger.info("read_datafile завершение работы функции")
+    return start_date_final
+
+
+"""
+def cards_total_spent(transactions: List[Dict]) -> List[Dict]:
+    df = pd.DataFrame(transactions)
+    df['Дата операции'] = pd.to_datetime(df['Дата операции'])
+    grouped = df.groupby(['Номер карты', 'Дата операции', 'Сумма операции'])
+    result = grouped.sum()
+    print(result)
+    pass
+"""

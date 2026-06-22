@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-from src.views import cards_filtered, read_datafile
+from src.views import cards_filtered, read_datafile, start_data_filtered
 
 
 @patch("builtins.open", side_effect=FileNotFoundError)
@@ -40,3 +40,15 @@ def test_cards_filtered__wrong_type(num_card: str) -> None:
     """Тест вызова ошибки TypeError"""
     with pytest.raises(TypeError):
         cards_filtered(num_card)
+
+
+@pytest.mark.parametrize("start_date, start_range, expected", [
+    ("2026-04-01 00:00:00", "w", datetime.datetime(2026, 3, 30, 0, 0, 0)),
+    ("2026-04-01 00:00:00", "ALL", datetime.datetime(1000, 1, 1, 0, 0, 0)),
+    ("2026-04-20 00:00:00", "M", datetime.datetime(2026, 4, 1, 0, 0, 0)),
+    ("2026-04-01 00:00:00", "y", datetime.datetime(2026, 1, 1, 0, 0, 0)),
+])
+def test_start_data_filtered(start_date: str, start_range: str, expected: str) -> None:
+    """Тест правильности обработка различных номеров"""
+    result = start_data_filtered(start_date, start_range)
+    assert result == expected
