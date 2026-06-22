@@ -144,9 +144,6 @@ def cards_total_spent(transactions: List[Dict]) -> List[Dict]:
     списком словарей на выходе
     """
     df = pd.DataFrame(transactions)
-    # df['Дата операции'] = pd.to_datetime(df['Дата операции'], format='%d.%m.%Y %H:%M:%S')
-    # df['Номер карты'] = pd.to_datetime(df['Номер карты'])
-    # grouped = df.groupby(['Сумма операции с округлением'])
     grouped = df.groupby("Номер карты")["Сумма операции с округлением"].sum().reset_index()
     grouped.rename(columns={"Номер карты": "last_digits"}, inplace=True)
     grouped.rename(columns={"Сумма операции с округлением": "total_spent"}, inplace=True)
@@ -157,6 +154,35 @@ def cards_total_spent(transactions: List[Dict]) -> List[Dict]:
         item["total_spent"] = round(item["total_spent"], 2)
         item["cashback"] = round(item["total_spent"] / 100, 2)
     return df_result
+
+
+def top_5_transactions(transactions: List[Dict]) -> List[Dict]:
+    """
+    Принимает список словарей с транзакциями
+    выводит топ 5 по транзакциям:
+    "date": "21.12.2021",
+    "amount": 1198.23,
+    "category": "Переводы",
+    "description": "Перевод Кредитная карта. ТП 10.2 RUR"
+    выводит списком словарей на выходе
+    """
+    logger.info("вызов top_5_transactions")
+    df = pd.DataFrame(transactions)
+    logger.info("top_5_transactions получение данных о ТОП 5")
+    top_5 = df.nlargest(5, "Сумма операции с округлением")
+    logger.info("top_5_transactions переименование колонок под сайт")
+    top_5_renamed = top_5.rename(
+        columns={
+            "Дата операции": "date",
+            "Сумма операции с округлением": "amount",
+            "Категория": "category",
+            "Описание": "description",
+        }
+    )
+    logger.info("top_5_transactions преобразование в словарь")
+    df_top_5 = top_5_renamed[["date", "amount", "category", "description"]].to_dict("records")
+    logger.info("top_5_transactions завершение функции")
+    return df_top_5
 
 
 def filter_transactions_by_date(transactions: List[Dict], start_date: str, start_range: str = "M") -> List[Dict]:
@@ -181,6 +207,3 @@ def filter_transactions_by_date(transactions: List[Dict], start_date: str, start
             ):
                 result_transactions.append(transaction)
     return result_transactions
-
-
-#print(cards_total_spent(filter_transactions_by_date(read_datafile(), "2021-12-31 00:00:00", "Y")))
