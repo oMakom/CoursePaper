@@ -211,3 +211,74 @@ def filter_transactions_by_date(transactions: List[Dict], start_date: str, start
             ):
                 result_transactions.append(transaction)
     return result_transactions
+
+
+def read_user_settings(key: str) -> list:
+    """
+    Функция для считывания данных из файла настроки по ключу
+    принимает на вход ключ в виде строки
+    на выходе список данных по ключу или пустой список при ошибке или отсутствии данных
+    "user_currencies" -> Список валют
+    "user_stocks" -> Список акций
+    """
+    logger.info(f"вызов read_user_settings с ключем настроек : '{key}'")
+    file_path = os.path.abspath((os.path.join(root_path, "..", "user_settings.json")))
+    result_list = []
+    try:
+        with open(file_path, "r") as f:
+            logger.info(f"read_user_settings чтение данных и файла настроек '{file_path}' по ключу '{key}'")
+            data = json.load(f)
+            if data.get(key):
+                result_list = data[key]
+                logger.info("read_user_settings учпешное чтение данных")
+            else:
+                logger.error(f"read_user_settings ключа настроек '{key}' не существует")
+    except FileNotFoundError:
+        logger.error(f"read_user_settings файл с настройками по пути : '{file_path}' не найден")
+    except Exception as e:
+        logger.error(f"read_user_settings непредвиденная ошибка : '{e}'")
+    logger.info("read_user_settings завершение работы функции")
+    return result_list
+
+
+def exchange_rates() -> List[Dict]:
+    """
+    функция забирает данные с 'https://www.cbr-xml-daily.ru/daily_json.js' по курсу валют и на выход подает
+    список только тех курс валют, которые указаны в user_settings.json по ключу "user_currencies"в формате:
+    [{'currency': 'USD', 'rate': 74.62}, {'currency': 'EUR', 'rate': 85.48}]
+    Если валют не найдено или они отсутствуют в файле настроек, то выводит пустой список
+    """
+    # забираем из настроек список валют
+    logger.info("вызов exchange_rates")
+    currencies = read_user_settings("user_currencies")
+    # забираем данные о валютах со стороннего ресурса
+    if not currencies:
+        logger.error(
+            "exchange_rates в файле натроек нет данных о курсах валют. Выводим пустой список."
+            " Завершение работы функции."
+        )
+        return []
+    logger.info("exchange_rates чтение данных по валютам с 'https://www.cbr-xml-daily.ru/daily_json.js'")
+    try:
+        r = requests.get("https://www.cbr-xml-daily.ru/daily_json.js")
+        currencies_dict = r.json()
+        logger.info("exchange_rates успешное чтение данных по валютам")
+    except requests.exceptions.RequestException as e:
+        logger.error(
+            f"exchange_rates ошибка чтения данных ERROR: {e}. Выводим пустой список. " f"Завершение работы функции"
+        )
+        return []
+
+    result_currencies = []
+    # для каждой валюты из списка в настройках
+    for target_currency in currencies:
+        result_currency = {}
+        if currencies_dict.get("Valute").get(target_currency):
+            logger.info(f"exchange_rates валюта {target_currency} найдена")
+            result_currency["currency"] = target_currency
+            result_currency["rate"] = round(currencies_dict.get("Valute").get(target_currency).get("Value"), 2)
+            result_currencies.append(result_currency)
+    if not result_currencies:
+        logger.error("exchange_rates валют указаных в файле с настройками не найдено, выводим пустой список")
+    logger.info("exchange_rates завершение работы функции")
+    return result_currencies
