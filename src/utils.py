@@ -98,35 +98,35 @@ def start_data_filtered(start_date: str, start_range: str = "M") -> datetime.dat
     на выходе дата начала сбора данных, в зависимости от параметров, в формате datetime и конечная дата
     сбора данных в формате datetime
     """
-    logger.info(f"вызов read_datafile с параметрами: start_date: '{start_date}', start_range: '{start_range}'")
+    logger.info(f"вызов start_data_filtered с параметрами: start_date: '{start_date}', start_range: '{start_range}'")
     # если некорректный формат даты -> присваиваем сегодняшнюю дату
     try:
         date_filtered = datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-        logger.info(f"read_datafile преобразование '{start_date}' в datetime по формату YYYY-MM-DD HH:MM:SS")
+        logger.info(f"start_data_filtered преобразование '{start_date}' в datetime по формату YYYY-MM-DD HH:MM:SS")
     except Exception as e:
         logger.error(
-            f"read_datafile ошибка преобразования '{start_date}' в datetime по формату YYYY-MM-DD HH:MM:SS. "
+            f"start_data_filtered ошибка преобразования '{start_date}' в datetime по формату YYYY-MM-DD HH:MM:SS. "
             f"ERROR: {e}.   Сбор данных будет указан относительно текущей даты"
         )
         date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         date_filtered = datetime.datetime.strptime(date_now, "%Y-%m-%d %H:%M:%S")
     # если указано будущее -> присваиваем сегодняшнюю дату
     if date_filtered > datetime.datetime.now():
-        logger.error(f"read_datafile ошибка: Указано будущее({date_filtered}). Присваимваем текущую дату")
+        logger.error(f"start_data_filtered ошибка: Указано будущее({date_filtered}). Присваимваем текущую дату")
         date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         date_filtered = datetime.datetime.strptime(date_now, "%Y-%m-%d %H:%M:%S")
     if start_range.lower() == "w":
         start_date_final = date_filtered - datetime.timedelta(days=date_filtered.weekday())
-        logger.info("read_datafile фильтрация даты по текущей неделе")
+        logger.info("start_data_filtered фильтрация даты по текущей неделе")
     if start_range.lower() == "m":
         start_date_final = date_filtered.replace(day=1)
-        logger.info("read_datafile фильтрация даты по текущему месяцу")
+        logger.info("start_data_filtered фильтрация даты по текущему месяцу")
     if start_range.lower() == "y":
         start_date_final = date_filtered.replace(day=1, month=1)
-        logger.info("read_datafile фильтрация даты по текущему году")
+        logger.info("start_data_filtered фильтрация даты по текущему году")
     if start_range.lower() == "all":
-        logger.info("read_datafile фильтрация всех данных до указанной даты")
+        logger.info("start_data_filtered фильтрация всех данных до указанной даты")
         start_date_final = datetime.datetime.strptime("1000-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
-    logger.info("read_datafile завершение работы функции")
+    logger.info("start_data_filtered завершение работы функции")
     end_date_final = date_filtered
     return start_date_final, end_date_final
