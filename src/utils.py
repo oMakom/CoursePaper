@@ -1,9 +1,10 @@
-import pandas as pd
 import datetime
 import json
 import logging
 import os
 from typing import Any, Dict, Hashable, List
+
+import pandas as pd
 
 # Определяем путь к проекту Src
 root_path = os.path.dirname(os.path.abspath(__file__))
