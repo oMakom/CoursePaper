@@ -76,13 +76,18 @@ def cards_total_spent(transactions: List[Dict]) -> List[Dict]:
                             кешбэк (1 рубль на каждые 100 рублей) ("cashback").
     списком словарей на выходе
     """
+    if not transactions:
+        logger.error("cards_total_spent отсутствуют транзакции для вывода. Заверщение функции. На выходе пустой список")
+        return []
     logger.info("вызов cards_total_spent")
     df = pd.DataFrame(transactions)
     logger.info("cards_total_spent групировка данных")
-    grouped = df.groupby("Номер карты")["Сумма операции с округлением"].sum().reset_index()
+    # общая сумма расходов - это приход + траты. то есть все расходы/приходы по карте
+    grouped = df.groupby("Номер карты")["Сумма операции"].sum().reset_index()
+    grouped["Сумма операции"] = grouped["Сумма операции"].abs()
     logger.info("cards_total_spent переименование колонок под стайт")
     grouped.rename(columns={"Номер карты": "last_digits"}, inplace=True)
-    grouped.rename(columns={"Сумма операции с округлением": "total_spent"}, inplace=True)
+    grouped.rename(columns={"Сумма операции": "total_spent"}, inplace=True)
     df_result = grouped.to_dict("records")
     logger.info("cards_total_spent оставлеем последние 4 цифры карты, округляем резутьтат тразакций, считаем cashback")
     for item in df_result:
@@ -106,16 +111,21 @@ def top_5_transactions(transactions: List[Dict]) -> List[Dict]:
     logger.info("вызов top_5_transactions")
     df = pd.DataFrame(transactions)
     logger.info("top_5_transactions получение данных о ТОП 5")
-    top_5 = df.nlargest(5, "Сумма операции с округлением")
+    # убираем транзакции, которые  не прошли
+    df_not_failed = df[df["Статус"] != "FAILED"]
+    # берем топ 5 малых сумм (Топ-5 транзакций по сумме платежа, т.е. расходы. Расходы со знаком "-")
+    top_5 = df_not_failed.nsmallest(5, "Сумма операции")
     logger.info("top_5_transactions переименование колонок под сайт")
     top_5_renamed = top_5.rename(
         columns={
             "Дата операции": "date",
-            "Сумма операции с округлением": "amount",
+            "Сумма операции": "amount",
             "Категория": "category",
             "Описание": "description",
         }
     )
+    # преобразуем расходы в положительные числа
+    top_5_renamed["amount"] = top_5_renamed["amount"].abs()
     logger.info("top_5_transactions преобразование в словарь")
     df_top_5 = top_5_renamed[["date", "amount", "category", "description"]].to_dict("records")
     logger.info("top_5_transactions завершение функции")
