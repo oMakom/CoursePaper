@@ -282,3 +282,53 @@ def exchange_rates() -> List[Dict]:
         logger.error("exchange_rates валют указаных в файле с настройками не найдено, выводим пустой список")
     logger.info("exchange_rates завершение работы функции")
     return result_currencies
+
+
+def share_price():
+    """
+    функция забирает данные с MOEX ISS по курсу акций и на выход подает
+    список только курс акций, которые указаны в user_settings.json по ключу "user_stocks" в формате:
+    [{"stock": "AAPL", "price": 150.12}, {"stock": "AMZN", "price": 3173.18}]
+    Если акций не найдено или они отсутствуют в файле настроек, то выводит пустой список
+    ?iss.only=marketdata&marketdata.columns=LAST позволяет запросить только последнюю цену акции
+    """
+    logger.info("вызов share_price")
+    tickers = read_user_settings("user_stocks")
+    if not tickers:
+        logger.error(
+            "share_price в файле натроек нет данных о курсах валют. Выводим пустой список."
+            " Завершение работы функции."
+        )
+        return []
+    result_stocks = []
+    for ticker in tickers:
+        url = (
+            f"https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/{ticker}.json"
+            f"?iss.only=marketdata&marketdata.columns=LAST"
+        )
+        result_stock = {}
+        try:
+            logger.info(f"share_price читаем данные с iss.moex.com для акции с тикером '{ticker}' по url: {url}")
+            r = requests.get(url)
+            stock_dict = r.json()
+            if stock_dict.get("marketdata").get("data") and stock_dict.get("marketdata").get("data")[0][0]:
+                logger.info("share_price данные успешно найдены")
+                result_stock["stock"] = ticker
+                result_stock["price"] = round(stock_dict["marketdata"]["data"][0][0], 2)
+                result_stocks.append(result_stock)
+                logger.info(f"share_price успешная чтение/запись для акции с тикером '{ticker}'")
+            else:
+                logger.error(f"share_price данные по акции с тикером '{ticker} не найдены")
+        except requests.exceptions.RequestException as e:
+            logger.error(
+                f"share_price ошибка чтения данных ERROR: {e}. Выводим пустой список. " f"Завершение работы функции"
+            )
+        except Exception as e:
+            logger.error(
+                f"share_price Непредвиденная ошибка ERROR: {e}. Выводим пустой список. " f"Завершение работы функции"
+            )
+            return []
+    if not result_stocks:
+        logger.error("share_price акций указаных в файле с настройками не найдено, выводим пустой список")
+    logger.info("share_price завершение работы функции")
+    return result_stocks
