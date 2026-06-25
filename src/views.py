@@ -6,7 +6,7 @@ from typing import Any, Dict, Hashable, List
 import pandas as pd
 import requests
 
-from src.utils import cards_filtered, read_user_settings, start_data_filtered
+from src.utils import cards_filtered, exchange_rates, read_user_settings, start_data_filtered, transaction_tu_rub
 
 # Определяем путь к проекту Src
 root_path = os.path.dirname(os.path.abspath(__file__))
@@ -77,17 +77,17 @@ def cards_total_spent(transactions: List[Dict]) -> List[Dict]:
     списком словарей на выходе
     """
     if not transactions:
-        logger.error("cards_total_spent отсутствуют транзакции для вывода. Заверщение функции. На выходе пустой список")
+        logger.error("cards_total_spent отсутствуют транзакции. Заверщение функции. На выходе пустой список")
         return []
     logger.info("вызов cards_total_spent")
     df = pd.DataFrame(transactions)
     logger.info("cards_total_spent групировка данных")
     # общая сумма расходов - это приход + траты. то есть все расходы/приходы по карте
-    grouped = df.groupby("Номер карты")["Сумма операции"].sum().reset_index()
-    grouped["Сумма операции"] = grouped["Сумма операции"].abs()
+    grouped = df.groupby("Номер карты")["Сумма платежа"].sum().reset_index()
+    grouped["Сумма платежа"] = grouped["Сумма платежа"].abs()
     logger.info("cards_total_spent переименование колонок под стайт")
     grouped.rename(columns={"Номер карты": "last_digits"}, inplace=True)
-    grouped.rename(columns={"Сумма операции": "total_spent"}, inplace=True)
+    grouped.rename(columns={"Сумма платежа": "total_spent"}, inplace=True)
     df_result = grouped.to_dict("records")
     logger.info("cards_total_spent оставлеем последние 4 цифры карты, округляем резутьтат тразакций, считаем cashback")
     for item in df_result:
@@ -109,17 +109,19 @@ def top_5_transactions(transactions: List[Dict]) -> List[Dict]:
     выводит списком словарей на выходе
     """
     logger.info("вызов top_5_transactions")
-    df = pd.DataFrame(transactions)
+    logger.info("top_5_transactions приводим 'Сумма операции' к рублям")
+    transactions_rub = transaction_tu_rub(transactions)
+    df = pd.DataFrame(transactions_rub)
     logger.info("top_5_transactions получение данных о ТОП 5")
-    # убираем транзакции, которые  не прошли
+    # убираем транзакции, которые  не прошли ("FAILED")
     df_not_failed = df[df["Статус"] != "FAILED"]
     # берем топ 5 малых сумм (Топ-5 транзакций по сумме платежа, т.е. расходы. Расходы со знаком "-")
-    top_5 = df_not_failed.nsmallest(5, "Сумма операции")
+    top_5 = df_not_failed.nsmallest(5, "Сумма платежа")
     logger.info("top_5_transactions переименование колонок под сайт")
     top_5_renamed = top_5.rename(
         columns={
             "Дата операции": "date",
-            "Сумма операции": "amount",
+            "Сумма платежа": "amount",
             "Категория": "category",
             "Описание": "description",
         }
@@ -156,46 +158,45 @@ def filter_transactions_by_date(transactions: List[Dict], start_date: str, start
     return result_transactions
 
 
-def exchange_rates() -> List[Dict]:
+def exchange_rates_for_settings() -> List[Dict]:
     """
-    функция забирает данные с 'https://www.cbr-xml-daily.ru/daily_json.js' по курсу валют и на выход подает
-    список только тех курс валют, которые указаны в user_settings.json по ключу "user_currencies"в формате:
+    функция на выход подает список только тех курс валют, которые указаны в user_settings.json
+    по ключу "user_currencies"в формате:
     [{'currency': 'USD', 'rate': 74.62}, {'currency': 'EUR', 'rate': 85.48}]
     Если валют не найдено или они отсутствуют в файле настроек, то выводит пустой список
     """
+
     # забираем из настроек список валют
-    logger.info("вызов exchange_rates")
+    logger.info("вызов exchange_rates_for_settings")
     currencies = read_user_settings("user_currencies")
     # забираем данные о валютах со стороннего ресурса
     if not currencies:
         logger.error(
-            "exchange_rates в файле натроек нет данных о курсах валют. Выводим пустой список."
+            "exchange_rates_for_settings в файле наcтроек нет данных о курсах валют. Выводим пустой список."
             " Завершение работы функции."
         )
         return []
-    logger.info("exchange_rates чтение данных по валютам с 'https://www.cbr-xml-daily.ru/daily_json.js'")
-    try:
-        r = requests.get("https://www.cbr-xml-daily.ru/daily_json.js")
-        currencies_dict = r.json()
-        logger.info("exchange_rates успешное чтение данных по валютам")
-    except requests.exceptions.RequestException as e:
+    currencies_dict = exchange_rates()
+    if not currencies_dict:
         logger.error(
-            f"exchange_rates ошибка чтения данных ERROR: {e}. Выводим пустой список. " f"Завершение работы функции"
+            "exchange_rates_for_settings в файле нет данных о курсах валют. Выводим пустой список."
+            " Завершение работы функции."
         )
         return []
-
     result_currencies = []
     # для каждой валюты из списка в настройках
     for target_currency in currencies:
         result_currency = {}
-        if currencies_dict.get("Valute").get(target_currency):
-            logger.info(f"exchange_rates валюта {target_currency} найдена")
+        if currencies_dict.get(target_currency):
+            logger.info(f"exchange_rates_for_settings валюта {target_currency} найдена")
             result_currency["currency"] = target_currency
-            result_currency["rate"] = round(currencies_dict.get("Valute").get(target_currency).get("Value"), 2)
+            result_currency["rate"] = round(currencies_dict[target_currency], 2)
             result_currencies.append(result_currency)
     if not result_currencies:
-        logger.error("exchange_rates валют указаных в файле с настройками не найдено, выводим пустой список")
-    logger.info("exchange_rates завершение работы функции")
+        logger.error(
+            "exchange_rates_for_settings валют указаных в файле с настройками не найдено, выводим пустой список"
+        )
+    logger.info("exchange_rates_for_settings завершение работы функции")
     return result_currencies
 
 
