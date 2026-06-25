@@ -5,6 +5,7 @@ import os
 from typing import Any, Dict, Hashable, List
 
 import pandas as pd
+import requests
 
 # Определяем путь к проекту Src
 root_path = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +35,57 @@ def read_datafile(filename: str = "operations.xlsx") -> List[Dict[Hashable, Any]
         transactions = []
         logger.error(f"read_datafile завершение функции с ошибкой({e}). На выходе пустой список")
         return transactions
+
+
+def exchange_rates() -> dict:
+    """
+    функция забирает данные с 'https://www.cbr-xml-daily.ru/daily_json.js' по курсу валют и на выходе
+    список валют в виде словаря ({'AUD': 51.6911, 'AZN': 43.9846, 'DZD': 56.0731})
+    """
+    # забираем из настроек список валют
+    logger.info("вызов exchange_rates")
+    logger.info("exchange_rates чтение данных по валютам с 'https://www.cbr-xml-daily.ru/daily_json.js'")
+    try:
+        r = requests.get("https://www.cbr-xml-daily.ru/daily_json.js")
+        currencies_dict = r.json()
+        logger.info("exchange_rates успешное чтение данных по валютам.Завершение работы функции")
+        # упрощаем словарь и добавим рубль, чтоб избежать в будещем проверок
+        result_currencies_dict = {currency: value["Value"] for currency, value in currencies_dict["Valute"].items()}
+        result_currencies_dict["RUB"] = 1.0
+        return result_currencies_dict
+    except requests.exceptions.RequestException as e:
+        logger.error(
+            f"exchange_rates ошибка чтения данных ERROR: {e}. Выводим пустой словарь. " f"Завершение работы функции"
+        )
+        return {}
+
+
+def transaction_tu_rub(transactions: List[Dict]) -> List[Dict[Hashable, Any]]:
+    """
+    перевод транзакций к рублю
+    на входе список транзакций
+    на выходе список рублевых транзакций по колонке "Сумма платежа"
+    """
+    logger.info("вызов transaction_tu_rub")
+    logger.info("transaction_tu_rub запрашиваем курсы валют")
+    rates = exchange_rates()
+    if not rates:
+        logger.error("transaction_tu_rub не удалось запросить курсы валют,  перевод 'Сумма платежа' к рублю отменен.")
+        return transactions
+    logger.info("transaction_tu_rub Приводим графу 'Сумма операции' к рублям")
+    # (некоректно, так как данные на текущий день)
+    for transaction in transactions:
+        if transaction["Валюта платежа"] != "RUB":
+            try:
+                transaction["Сумма платежа"] = transaction["Сумма платежа"] * rates[transaction["Валюта платежа"]]
+                transaction["Валюта платежа"] = "RUB"
+            except Exception as e:
+                logger.error(
+                    f"transaction_tu_rub Ошибка перевода валюты в транзакции от {transaction["Дата операции"]}"
+                    f" на сумму {transaction["Сумма платежа"]}  {transaction["Валюта платежа"]}.  ERROR: {e}"
+                )
+    logger.info("transaction_tu_rub завершение работы")
+    return transactions
 
 
 def cards_filtered(num_card: str) -> str:
