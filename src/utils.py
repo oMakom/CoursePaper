@@ -182,3 +182,22 @@ def start_data_filtered(start_date: str, start_range: str = "M") -> datetime.dat
     logger.info("start_data_filtered завершение работы функции")
     end_date_final = date_filtered
     return start_date_final, end_date_final
+
+
+def str_to_datetime(date_str: str) -> datetime.datetime | None:
+    """
+    Пытается преобразовать строку в datetime по шаблонам, иначе ничего не выводит
+    """
+    formats = [
+        "%d.%m.%Y %H:%M:%S",
+        "%Y-%m-%d %H:%M:%S",
+        "%d.%m.%Y",
+        "%Y-%m-%d",
+        "%d/%m/%Y %H:%M",
+    ]
+    data_str = str(date_str).strip()
+    for format in formats:
+        try:
+            return datetime.datetime.strptime(data_str, format)
+        except Exception:
+            continue
