@@ -8,7 +8,7 @@ from typing import Optional
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from src.utils import str_to_datetime
+from src.utils import str_to_datetime, read_datafile
 
 # Определяем путь к проекту Src
 root_path = os.path.dirname(os.path.abspath(__file__))
@@ -26,12 +26,12 @@ def save_report(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         """
-        записывает данные отчета в файл с названием по умолчанию
+        записывает данные отчета в файл с названием по умолчанию(имя функции.json)
         """
         # Определяем путь к проекту Src
         logger.info(f"вызов декоратора save_report для {func.__name__}")
         root_path = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.abspath(os.path.join(root_path, "..", "spending_category_report.json"))
+        file_path = os.path.abspath(os.path.join(root_path, "..",f"{func.__name__}.json"))
 
         result = func(*args, **kwargs)
         try:
