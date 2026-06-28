@@ -81,8 +81,8 @@ def transaction_tu_rub(transactions: List[Dict]) -> List[Dict[Hashable, Any]]:
                 transaction["Валюта платежа"] = "RUB"
             except Exception as e:
                 logger.error(
-                    f"transaction_tu_rub Ошибка перевода валюты в транзакции от {transaction["Дата операции"]}"
-                    f" на сумму {transaction["Сумма платежа"]}  {transaction["Валюта платежа"]}.  ERROR: {e}"
+                    f"transaction_tu_rub Ошибка перевода валюты в транзакции от {transaction['Дата операции']}"
+                    f" на сумму {transaction['Сумма платежа']}  {transaction['Валюта платежа']}.  ERROR: {e}"
                 )
     logger.info("transaction_tu_rub завершение работы")
     return transactions
