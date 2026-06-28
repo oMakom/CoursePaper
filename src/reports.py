@@ -42,8 +42,9 @@ def save_report(func):
         if not data:
             logger.error(f"декоратор save_report для {func.__name__} нет данных по категории.")
             data = json.loads('{"Категория": "нет данных по категории в выбранном диапазоне"}')
-        logger.info(f'декоратор save_report для {func.__name__} запись в файл {file_path} результата')
-        with open(file_path, "w", encoding="utf-8") as f:json.dump(data, f, ensure_ascii=False, indent=4)
+        logger.info(f"декоратор save_report для {func.__name__} запись в файл {file_path} результата")
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
         logger.info(f"декоратор save_report для {func.__name__} завершение работы")
         return result
 
@@ -79,8 +80,8 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
     logger.info(f"spending_by_category оставляем транзакции по категории {category}")
     result_transactions = result_data_transactions.loc[result_data_transactions["Категория"] == category]
     # общая сумма расходов - это приход + траты. то есть все расходы/приходы
-    logger.info(f"spending_by_category суммируем траты")
+    logger.info("spending_by_category суммируем траты")
     grouped = result_transactions.groupby("Категория")["Сумма платежа"].sum().reset_index()
     grouped["Сумма платежа"] = grouped["Сумма платежа"].abs()
-    logger.info(f"spending_by_category завершение работы")
+    logger.info("spending_by_category завершение работы")
     return grouped

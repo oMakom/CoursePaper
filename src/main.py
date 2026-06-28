@@ -1,7 +1,8 @@
 import json
 
+from src.utils import read_datafile
 from src.views import (cards_total_spent, exchange_rates_for_settings, filter_transactions_by_date, greeting_by_time,
-                       read_datafile, share_price, top_5_transactions)
+                       share_price, top_5_transactions)
 
 
 def main_views_function(date_time: str, start_range: str = "M") -> str:
